@@ -123,6 +123,7 @@ export function normalizeLaundryState(
   return {
     active,
     connected: payload.lastConnEvent?.category !== 'DISCONNECTED',
+    doorLocked: toBoolean(values.doorLockStatus ?? values.doorLock),
     doorOpen: toBoolean(values.doorStatus),
     error,
     machineMode: MACHINE_MODES[machineModeValue] ?? `unknown (${machineModeValue})`,

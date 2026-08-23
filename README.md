@@ -28,12 +28,18 @@ Each laundry appliance is exposed as a read-only valve-style cycle monitor with:
 - remaining duration, including programs longer than 60 minutes;
 - current program and phase (custom read-only characteristics);
 - connection and appliance-error fault state;
-- a linked door contact sensor.
+- a linked door contact sensor;
+- a linked, read-only door lock showing locked/unlocked state.
 
 By default, the same accessory also exposes linked, read-only phase sensors for
 weighing, washing, rinsing, spinning, drying, steam/refresh, and cycle
 completion. These standard occupancy sensors are visible in Apple Home and can
 be used in automations. Set `exposePhaseSensors` to `false` to hide them.
+
+The door lock uses hOn's dedicated lock parameter when the appliance publishes
+it. On models without that parameter, the plugin safely infers the lock from
+the physical door and running-cycle states. Set `exposeDoorLock` to `false` to
+hide the lock service.
 
 Remote start/stop is deliberately disabled in the first CIAM release. Washing
 machines require a valid remote-control state and a complete program payload;
@@ -77,6 +83,7 @@ The original configuration keys remain valid:
       "username": "your-hon-account@example.com",
       "password": "your-hon-password",
       "pollInterval": 30,
+      "exposeDoorLock": true,
       "exposePhaseSensors": true
     }
   ]

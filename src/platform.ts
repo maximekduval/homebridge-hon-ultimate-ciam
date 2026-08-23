@@ -127,6 +127,7 @@ export class HOnUltimatePlatform implements DynamicPlatformPlugin {
               accessory,
               device,
               this.config.exposePhaseSensors !== false,
+              this.config.exposeDoorLock !== false,
             ),
           );
         }

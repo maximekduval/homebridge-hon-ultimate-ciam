@@ -16,6 +16,7 @@ describe('normalizeLaundryState', () => {
         lastConnEvent: { category: 'CONNECTED' },
         shadow: {
           parameters: {
+            doorLockStatus: { parNewVal: '1' },
             doorStatus: { parNewVal: '0' },
             error: { parNewVal: '00' },
             machMode: { parNewVal: '2' },
@@ -32,6 +33,7 @@ describe('normalizeLaundryState', () => {
     expect(state).toMatchObject({
       active: true,
       connected: true,
+      doorLocked: true,
       doorOpen: false,
       error: undefined,
       machineMode: 'running',

@@ -37,6 +37,12 @@
         "description": "Adds read-only HomeKit sensors for weighing, washing, rinsing, spinning, drying, steam/refresh and cycle completion.",
         "type": "boolean",
         "default": true
+      },
+      "exposeDoorLock": {
+        "title": "Expose Door Lock",
+        "description": "Adds a linked, read-only HomeKit lock showing whether the appliance door is locked or unlocked.",
+        "type": "boolean",
+        "default": true
       }
     }
   }

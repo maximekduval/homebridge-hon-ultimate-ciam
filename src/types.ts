@@ -5,6 +5,7 @@ export interface HOnUltimateConfig extends PlatformConfig {
   email?: string;
   password?: string;
   pollInterval?: number;
+  exposeDoorLock?: boolean;
   exposePhaseSensors?: boolean;
 }
 
@@ -51,6 +52,7 @@ export interface HOnContextPayload {
 export interface LaundryState {
   active: boolean;
   connected: boolean;
+  doorLocked?: boolean;
   doorOpen?: boolean;
   error?: string;
   machineMode: string;

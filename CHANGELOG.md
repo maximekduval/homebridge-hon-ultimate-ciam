@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.1
+
+- Add a linked, read-only HomeKit lock for the laundry door, matching the
+  service layout used by the LG ThinQ Homebridge plugin.
+- Read hOn's `doorLockStatus`/`doorLock` value when available and fall back to
+  the appliance cycle state on models that do not publish a lock parameter.
+- Include physical door and lock transitions in the appliance status log.
+- Add the `exposeDoorLock` setting, enabled by default.
+
 ## 2.1.0
 
 - Add linked, read-only HomeKit occupancy sensors for weighing, washing,

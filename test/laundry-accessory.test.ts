@@ -20,6 +20,7 @@ function runningContext(
     lastConnEvent: { category: 'CONNECTED' },
     shadow: {
       parameters: {
+        doorLockStatus: { parNewVal: '1' },
         doorStatus: { parNewVal: '0' },
         machMode: { parNewVal: '2' },
         prPhase: { parNewVal: String(phase) },
@@ -42,6 +43,8 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
         lastConnEvent: { category: 'CONNECTED' },
         shadow: {
           parameters: {
+            doorLockStatus: { parNewVal: '0' },
+            doorStatus: { parNewVal: '1' },
             machMode: { parNewVal: '7' },
             prPhase: { parNewVal: '0' },
             remainingTimeMM: { parNewVal: '0' },
@@ -67,8 +70,13 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
       },
     );
     const valve = accessory.getService(hap.Service.Valve);
+    const doorLock = accessory.getServiceById(
+      hap.Service.LockMechanism,
+      'door-lock',
+    );
 
     expect(valve).toBeDefined();
+    expect(doorLock).toBeDefined();
     expect(valve!.isPrimaryService).toBe(true);
     const remainingDuration = valve!.getCharacteristic(
       hap.Characteristic.RemainingDuration,
@@ -107,6 +115,12 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
     expect(
       rinsing!.getCharacteristic(hap.Characteristic.OccupancyDetected).value,
     ).toBe(hap.Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED);
+    expect(
+      doorLock!.getCharacteristic(hap.Characteristic.LockCurrentState).value,
+    ).toBe(hap.Characteristic.LockCurrentState.SECURED);
+    expect(
+      doorLock!.getCharacteristic(hap.Characteristic.LockTargetState).value,
+    ).toBe(hap.Characteristic.LockTargetState.SECURED);
 
     vi.advanceTimersByTime(4_000);
     expect(await remainingDuration.handleGetRequest()).toBe(4_676);
@@ -143,6 +157,12 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
     expect(
       finished!.getCharacteristic(hap.Characteristic.OccupancyDetected).value,
     ).toBe(hap.Characteristic.OccupancyDetected.OCCUPANCY_DETECTED);
+    expect(
+      doorLock!.getCharacteristic(hap.Characteristic.LockCurrentState).value,
+    ).toBe(hap.Characteristic.LockCurrentState.UNSECURED);
+    expect(
+      doorLock!.getCharacteristic(hap.Characteristic.LockTargetState).value,
+    ).toBe(hap.Characteristic.LockTargetState.UNSECURED);
 
     vi.useRealTimers();
   });

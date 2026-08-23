@@ -64,6 +64,7 @@ export class LaundryAccessory {
   private cycleDurationSeconds = 0;
   private lastReportedRemainingSeconds: number | undefined;
   private lastSummary = '';
+  private readonly lockService?: Service;
   private readonly phaseServices = new Map<PhaseSensorId, Service>();
   private remainingSecondsAtSync = 0;
   private remainingSyncTimestampMs = 0;
@@ -77,6 +78,7 @@ export class LaundryAccessory {
     private readonly accessory: PlatformAccessory,
     private device: HOnAppliance,
     exposePhaseSensors = true,
+    exposeDoorLock = true,
   ) {
     const { Characteristic, Service } = api.hap;
     const name = applianceName(device);
@@ -137,6 +139,7 @@ export class LaundryAccessory {
       .onGet(() => this.statusFaultValue());
     this.valveService.addLinkedService(this.contactService);
 
+    this.lockService = this.configureDoorLockService(exposeDoorLock);
     this.configurePhaseServices(exposePhaseSensors);
 
     this.customCharacteristics = createLaundryCustomCharacteristics(
@@ -165,16 +168,20 @@ export class LaundryAccessory {
       this.state.program ?? '',
       this.state.remainingSeconds,
       this.state.connected,
+      this.state.doorOpen,
+      this.effectiveDoorLocked(),
       this.state.error ?? '',
     ].join('|');
     if (summary !== this.lastSummary) {
       this.lastSummary = summary;
       this.log.info(
-        '%s: %s, phase %s, remaining %d min%s',
+        '%s: %s, phase %s, remaining %d min, door %s/%s%s',
         applianceName(this.device),
         this.state.machineMode,
         this.state.phase,
         Math.ceil(this.state.remainingSeconds / 60),
+        this.state.doorOpen ? 'open' : 'closed',
+        this.effectiveDoorLocked() ? 'locked' : 'unlocked',
         this.state.error ? `, error ${this.state.error}` : '',
       );
     }
@@ -248,6 +255,75 @@ export class LaundryAccessory {
     return this.state.doorOpen
       ? Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
       : Characteristic.ContactSensorState.CONTACT_DETECTED;
+  }
+
+  private configureDoorLockService(exposeDoorLock: boolean): Service | undefined {
+    const { Characteristic, Service } = this.api.hap;
+    const existing = this.accessory.getServiceById(
+      Service.LockMechanism,
+      'door-lock',
+    );
+
+    if (!exposeDoorLock) {
+      if (existing) {
+        this.accessory.removeService(existing);
+      }
+      return undefined;
+    }
+
+    const service =
+      existing ??
+      this.accessory.addService(
+        Service.LockMechanism,
+        'Verrouillage porte',
+        'door-lock',
+      );
+    service.setCharacteristic(Characteristic.Name, 'Verrouillage porte');
+    service
+      .getCharacteristic(Characteristic.LockCurrentState)
+      .onGet(() => this.currentDoorLockStateValue());
+    service
+      .getCharacteristic(Characteristic.LockTargetState)
+      .onGet(() => this.targetDoorLockStateValue())
+      .onSet((value) => this.rejectDoorLockControl(value));
+    this.valveService.addLinkedService(service);
+    return service;
+  }
+
+  private effectiveDoorLocked(): boolean {
+    if (this.state.doorOpen) {
+      return false;
+    }
+    return this.state.doorLocked ?? this.state.active;
+  }
+
+  private currentDoorLockStateValue(): number {
+    const { Characteristic } = this.api.hap;
+    if (!this.state.connected) {
+      return Characteristic.LockCurrentState.UNKNOWN;
+    }
+    return this.effectiveDoorLocked()
+      ? Characteristic.LockCurrentState.SECURED
+      : Characteristic.LockCurrentState.UNSECURED;
+  }
+
+  private targetDoorLockStateValue(): number {
+    const { Characteristic } = this.api.hap;
+    return this.effectiveDoorLocked()
+      ? Characteristic.LockTargetState.SECURED
+      : Characteristic.LockTargetState.UNSECURED;
+  }
+
+  private rejectDoorLockControl(value: CharacteristicValue): void {
+    const requestedLocked =
+      Number(value) === this.api.hap.Characteristic.LockTargetState.SECURED;
+    if (requestedLocked === this.effectiveDoorLocked()) {
+      return;
+    }
+
+    throw new this.api.hap.HapStatusError(
+      this.api.hap.HAPStatus.READ_ONLY_CHARACTERISTIC,
+    );
   }
 
   private configurePhaseServices(exposePhaseSensors: boolean): void {
@@ -355,6 +431,16 @@ export class LaundryAccessory {
         this.contactStateValue(),
       )
       .updateCharacteristic(Characteristic.StatusFault, this.statusFaultValue());
+
+    this.lockService
+      ?.updateCharacteristic(
+        Characteristic.LockCurrentState,
+        this.currentDoorLockStateValue(),
+      )
+      .updateCharacteristic(
+        Characteristic.LockTargetState,
+        this.targetDoorLockStateValue(),
+      );
 
     for (const [id, service] of this.phaseServices) {
       service
