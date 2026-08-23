@@ -44,6 +44,32 @@ describe('normalizeLaundryState', () => {
     });
   });
 
+  it('prefers live shadow parameters over stale cycle attributes', () => {
+    const state = normalizeLaundryState(
+      {
+        activity: {
+          category: 'CYCLE',
+          attributes: {
+            prStrDisp: 'Cotton',
+            remainingTimeMM: '78',
+          },
+        },
+        lastConnEvent: { category: 'CONNECTED' },
+        shadow: {
+          parameters: {
+            machMode: { parNewVal: '2' },
+            prPhase: { parNewVal: '1' },
+            remainingTimeMM: { parNewVal: '51' },
+          },
+        },
+      },
+      'WM',
+    );
+
+    expect(state.program).toBe('Cotton');
+    expect(state.remainingSeconds).toBe(3_060);
+  });
+
   it('does not report a selected program as a running cycle', () => {
     const state = normalizeLaundryState(
       {

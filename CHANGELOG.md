@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.3
+
+- Prefer the appliance's live `shadow.parameters` over the static cycle-start
+  attributes when both contain `remainingTimeMM` or another state field.
+- Preserve activity-only metadata such as the selected program as a fallback.
+
 ## 2.0.2
 
 - Keep a local running-cycle clock so reopening Apple Home returns the actual

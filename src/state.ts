@@ -104,7 +104,10 @@ export function normalizeLaundryState(
   const activityAttributes = isNonEmptyObject(activity?.attributes)
     ? (activity.attributes as Record<string, unknown>)
     : {};
-  const values = { ...parameters, ...activityAttributes };
+  // Activity attributes describe the cycle that was launched and can keep its
+  // original duration for the whole run. The shadow contains the appliance's
+  // live parameters, so it must win whenever both sources expose the same key.
+  const values = { ...activityAttributes, ...parameters };
 
   const machineModeValue = toNumber(values.machMode) ?? 0;
   const phaseValue = toNumber(values.prPhase) ?? 0;
