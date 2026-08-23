@@ -281,11 +281,13 @@ export class LaundryAccessory {
     service.setCharacteristic(Characteristic.Name, 'Verrouillage porte');
     service
       .getCharacteristic(Characteristic.LockCurrentState)
-      .onGet(() => this.currentDoorLockStateValue());
+      .onGet(() => this.currentDoorLockStateValue())
+      .updateValue(this.currentDoorLockStateValue());
     service
       .getCharacteristic(Characteristic.LockTargetState)
       .onGet(() => this.targetDoorLockStateValue())
-      .onSet((value) => this.rejectDoorLockControl(value));
+      .onSet((value) => this.rejectDoorLockControl(value))
+      .updateValue(this.targetDoorLockStateValue());
     this.valveService.addLinkedService(service);
     return service;
   }
@@ -299,9 +301,6 @@ export class LaundryAccessory {
 
   private currentDoorLockStateValue(): number {
     const { Characteristic } = this.api.hap;
-    if (!this.state.connected) {
-      return Characteristic.LockCurrentState.UNKNOWN;
-    }
     return this.effectiveDoorLocked()
       ? Characteristic.LockCurrentState.SECURED
       : Characteristic.LockCurrentState.UNSECURED;

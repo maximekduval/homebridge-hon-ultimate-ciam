@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.2
+
+- Initialize the linked door lock as unsecured instead of unknown before the
+  first hOn refresh, preventing Apple Home from caching an `Unknown` summary.
+
 ## 2.1.1
 
 - Add a linked, read-only HomeKit lock for the laundry door, matching the

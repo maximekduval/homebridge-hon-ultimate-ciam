@@ -82,6 +82,9 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
       hap.Characteristic.RemainingDuration,
     );
     const setDuration = valve!.getCharacteristic(hap.Characteristic.SetDuration);
+    const currentDoorLockState = doorLock!.getCharacteristic(
+      hap.Characteristic.LockCurrentState,
+    );
     const washing = accessory.getServiceById(
       hap.Service.OccupancySensor,
       'laundry-phase-washing',
@@ -105,6 +108,12 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
     expect(rinsing).toBeDefined();
     expect(spinning).toBeDefined();
     expect(finished).toBeDefined();
+    expect(currentDoorLockState.value).toBe(
+      hap.Characteristic.LockCurrentState.UNSECURED,
+    );
+    expect(await currentDoorLockState.handleGetRequest()).toBe(
+      hap.Characteristic.LockCurrentState.UNSECURED,
+    );
 
     await laundryAccessory.refresh();
     expect(remainingDuration.value).toBe(4_680);
@@ -116,7 +125,7 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
       rinsing!.getCharacteristic(hap.Characteristic.OccupancyDetected).value,
     ).toBe(hap.Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED);
     expect(
-      doorLock!.getCharacteristic(hap.Characteristic.LockCurrentState).value,
+      currentDoorLockState.value,
     ).toBe(hap.Characteristic.LockCurrentState.SECURED);
     expect(
       doorLock!.getCharacteristic(hap.Characteristic.LockTargetState).value,
@@ -158,7 +167,7 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
       finished!.getCharacteristic(hap.Characteristic.OccupancyDetected).value,
     ).toBe(hap.Characteristic.OccupancyDetected.OCCUPANCY_DETECTED);
     expect(
-      doorLock!.getCharacteristic(hap.Characteristic.LockCurrentState).value,
+      currentDoorLockState.value,
     ).toBe(hap.Characteristic.LockCurrentState.UNSECURED);
     expect(
       doorLock!.getCharacteristic(hap.Characteristic.LockTargetState).value,
