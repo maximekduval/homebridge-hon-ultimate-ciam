@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0-beta.0
+## 2.0.0
 
 - Replace the deleted AWS Cognito app-client login with hOn CIAM/PKCE.
 - Discover appliances through the post-June-2026 unified API endpoint.

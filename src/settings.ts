@@ -1,5 +1,5 @@
 export const PLATFORM_NAME = 'hOnUltimate';
-export const PLUGIN_NAME = 'homebridge-hon-ultimate-ciam';
+export const PLUGIN_NAME = 'homebridge-hon-ultimate-mk';
 
 export const HON_API_URL = 'https://api-iot.he.services';
 export const HON_API_KEY = 'GRCqFhC6Gk@ikWXm1RmnSmX1cm,MxY-configuration';

@@ -7,7 +7,7 @@ function getOrCreateStringCharacteristic(
   identifier: string,
 ): Characteristic {
   const characteristicUuid = api.hap.uuid.generate(
-    `homebridge-hon-ultimate-ciam:${identifier}`,
+    `homebridge-hon-ultimate-mk:${identifier}`,
   );
   const existing = service.characteristics.find(
     (characteristic) => characteristic.UUID === characteristicUuid,

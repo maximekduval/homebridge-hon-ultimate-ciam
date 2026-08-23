@@ -1,4 +1,4 @@
-# Homebridge hOn Ultimate CIAM
+# Homebridge hOn Ultimate MK
 
 Unofficial Homebridge plugin for Haier, Candy, and Hoover laundry appliances
 connected through the hOn cloud.
@@ -7,8 +7,8 @@ This fork replaces the deleted Cognito client used by
 `homebridge-hon-ultimate@1.0.5` with hOn's current CIAM/PKCE authentication and
 the unified appliance API introduced in 2026.
 
-> This is beta software backed by an undocumented cloud API. hOn can change the
-> API without notice. Do not remove the official hOn app.
+> This plugin relies on an undocumented cloud API. hOn can change the API
+> without notice. Do not remove the official hOn app.
 
 ## Supported appliances
 
@@ -17,8 +17,8 @@ the unified appliance API introduced in 2026.
 - Tumble dryers (`TD`)
 
 The first target washing machine is the Haier `HW100-B14367U-FR`. The API
-implementation is intentionally model-independent, but this exact model still
-needs a real-device validation before the beta label can be removed.
+implementation is intentionally model-independent; real-device feedback for
+this exact model is welcome.
 
 ## HomeKit services
 
@@ -42,7 +42,13 @@ silently sending an incomplete command would be unsafe and unreliable.
 
 ## Installation
 
-During local testing:
+From npm:
+
+```shell
+sudo npm install -g homebridge-hon-ultimate-mk
+```
+
+For local development:
 
 ```shell
 npm install
@@ -96,16 +102,6 @@ npm pack --dry-run
 The state normalizer is covered with representative `WM`, `WD`, and `TD` API
 shapes. Live cloud tests are intentionally not included because they would
 require personal hOn credentials.
-
-## Preparing the npm publication
-
-The provisional package name is `homebridge-hon-ultimate-ciam`, which was
-available when this fork was created. Before publishing:
-
-1. validate on the target washer;
-2. remove the beta suffix only after successful validation;
-3. run `npm publish --access public` from an npm account allowed to publish the
-   chosen name.
 
 ## Credits
 
