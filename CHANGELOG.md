@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.2
+
+- Keep a local running-cycle clock so reopening Apple Home returns the actual
+  remaining seconds instead of restarting from hOn's last whole-minute value.
+- Do not reset the local countdown when consecutive hOn polls report the same
+  remaining minute.
+
 ## 2.0.1
 
 - Publish both HomeKit valve duration characteristics so Apple Home can render

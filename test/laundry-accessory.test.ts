@@ -27,8 +27,11 @@ function runningContext(remainingMinutes: number): HOnContextPayload {
 
 describe('LaundryAccessory HomeKit cycle timer', () => {
   it('publishes a countdown longer than the default 60-minute valve limit', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-23T16:00:00.000Z'));
     const getContext = vi
       .fn()
+      .mockResolvedValueOnce(runningContext(78))
       .mockResolvedValueOnce(runningContext(78))
       .mockResolvedValueOnce(runningContext(77))
       .mockResolvedValueOnce({
@@ -75,6 +78,16 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
     expect(remainingDuration.value).toBe(4_680);
     expect(setDuration.value).toBe(4_680);
 
+    vi.advanceTimersByTime(4_000);
+    expect(await remainingDuration.handleGetRequest()).toBe(4_676);
+
+    vi.advanceTimersByTime(26_000);
+    await laundryAccessory.refresh();
+    expect(remainingDuration.value).toBe(4_650);
+    expect(await remainingDuration.handleGetRequest()).toBe(4_650);
+    expect(setDuration.value).toBe(4_680);
+
+    vi.advanceTimersByTime(30_000);
     await laundryAccessory.refresh();
     expect(remainingDuration.value).toBe(4_620);
     expect(setDuration.value).toBe(4_680);
@@ -82,5 +95,7 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
     await laundryAccessory.refresh();
     expect(remainingDuration.value).toBe(0);
     expect(setDuration.value).toBe(0);
+
+    vi.useRealTimers();
   });
 });

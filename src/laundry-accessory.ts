@@ -37,7 +37,10 @@ export class LaundryAccessory {
   private readonly contactService: Service;
   private readonly customCharacteristics: LaundryCustomCharacteristics;
   private cycleDurationSeconds = 0;
+  private lastReportedRemainingSeconds: number | undefined;
   private lastSummary = '';
+  private remainingSecondsAtSync = 0;
+  private remainingSyncTimestampMs = 0;
   private state = DEFAULT_STATE;
   private readonly valveService: Service;
 
@@ -81,7 +84,7 @@ export class LaundryAccessory {
     this.valveService
       .getCharacteristic(Characteristic.RemainingDuration)
       .setProps({ maxValue: MAX_CYCLE_DURATION_SECONDS })
-      .onGet(() => this.state.remainingSeconds);
+      .onGet(() => this.currentRemainingSeconds());
     this.valveService
       .getCharacteristic(Characteristic.SetDuration)
       .setProps({ maxValue: MAX_CYCLE_DURATION_SECONDS })
@@ -123,7 +126,7 @@ export class LaundryAccessory {
     const payload = await this.client.getContext(this.device);
     const wasActive = this.state.active;
     this.state = normalizeLaundryState(payload, applianceType(this.device));
-    this.updateCycleDuration(wasActive);
+    this.updateCycleTiming(wasActive);
     this.updateCharacteristics();
 
     const summary = [
@@ -168,10 +171,34 @@ export class LaundryAccessory {
     );
   }
 
-  private updateCycleDuration(wasActive: boolean): void {
+  private currentRemainingSeconds(): number {
+    if (!this.state.active || this.remainingSecondsAtSync <= 0) {
+      return 0;
+    }
+
+    const elapsedSeconds = Math.max(
+      0,
+      Math.floor((Date.now() - this.remainingSyncTimestampMs) / 1_000),
+    );
+    return Math.max(0, this.remainingSecondsAtSync - elapsedSeconds);
+  }
+
+  private updateCycleTiming(wasActive: boolean): void {
     if (!this.state.active) {
       this.cycleDurationSeconds = 0;
+      this.lastReportedRemainingSeconds = undefined;
+      this.remainingSecondsAtSync = 0;
+      this.remainingSyncTimestampMs = 0;
       return;
+    }
+
+    if (
+      !wasActive ||
+      this.lastReportedRemainingSeconds !== this.state.remainingSeconds
+    ) {
+      this.lastReportedRemainingSeconds = this.state.remainingSeconds;
+      this.remainingSecondsAtSync = this.state.remainingSeconds;
+      this.remainingSyncTimestampMs = Date.now();
     }
 
     this.cycleDurationSeconds = wasActive
@@ -214,7 +241,7 @@ export class LaundryAccessory {
       )
       .updateCharacteristic(
         Characteristic.RemainingDuration,
-        this.state.remainingSeconds,
+        this.currentRemainingSeconds(),
       )
       .updateCharacteristic(Characteristic.StatusFault, this.statusFaultValue());
 
