@@ -1,0 +1,13 @@
+homebridge-hon-ultimate-ciam
+================================
+
+This project started as a clean TypeScript fork of the npm package
+homebridge-hon-ultimate 1.0.5 by jayc68, whose package metadata declares the
+MIT license.
+
+The current hOn CIAM/PKCE authentication flow, unified appliance-list endpoint,
+and laundry state mappings were adapted from the pyhOn/pyhon-revived community
+implementation. pyhOn is MIT licensed, Copyright (c) 2023 Andre Basche.
+
+This project is unofficial and is not affiliated with Haier, Candy, Hoover,
+Homebridge, or Apple.

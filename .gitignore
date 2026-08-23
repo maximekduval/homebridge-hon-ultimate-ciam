@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+*.tgz
+.DS_Store
+.env
+homebridge-config.json
+test/runtime/
+npm-debug.log*

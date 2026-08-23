@@ -1,0 +1,64 @@
+{
+  "name": "homebridge-hon-ultimate-ciam",
+  "version": "2.0.0-beta.0",
+  "description": "Homebridge plugin for Haier, Candy and Hoover hOn laundry appliances using the current CIAM/PKCE API.",
+  "license": "MIT",
+  "author": "maximekduval",
+  "homepage": "https://github.com/maximekduval/homebridge-hon-ultimate-ciam#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maximekduval/homebridge-hon-ultimate-ciam.git"
+  },
+  "bugs": {
+    "url": "https://github.com/maximekduval/homebridge-hon-ultimate-ciam/issues"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "config.schema.json",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "engines": {
+    "node": ">=20.11.0",
+    "homebridge": ">=1.8.0"
+  },
+  "keywords": [
+    "homebridge-plugin",
+    "homebridge",
+    "homekit",
+    "hon",
+    "haier",
+    "candy",
+    "hoover",
+    "washing-machine",
+    "washer-dryer",
+    "tumble-dryer"
+  ],
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepack": "npm run check && npm test && npm run build"
+  },
+  "dependencies": {
+    "axios": "^1.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "homebridge": "^2.4.0",
+    "rimraf": "^6.1.2",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  },
+  "peerDependencies": {
+    "homebridge": ">=1.8.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

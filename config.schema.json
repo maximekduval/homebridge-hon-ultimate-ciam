@@ -1,0 +1,37 @@
+{
+  "pluginAlias": "hOnUltimate",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Connects hOn laundry appliances through the current CIAM/PKCE cloud API. This is an unofficial integration.",
+  "footerDisplay": "For security, credentials are never written to the Homebridge log. Remote start/stop is deliberately not exposed in this first CIAM release.",
+  "schema": {
+    "type": "object",
+    "required": ["username", "password"],
+    "properties": {
+      "name": {
+        "title": "Platform Name",
+        "type": "string",
+        "default": "hOn Ultimate"
+      },
+      "username": {
+        "title": "hOn Account Email",
+        "type": "string",
+        "format": "email"
+      },
+      "password": {
+        "title": "hOn Account Password",
+        "type": "string",
+        "x-schema-form": {
+          "type": "password"
+        }
+      },
+      "pollInterval": {
+        "title": "Polling Interval (seconds)",
+        "type": "integer",
+        "default": 30,
+        "minimum": 10,
+        "maximum": 3600
+      }
+    }
+  }
+}
