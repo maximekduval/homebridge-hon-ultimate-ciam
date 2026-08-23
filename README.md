@@ -25,7 +25,7 @@ this exact model is welcome.
 Each laundry appliance is exposed as a read-only valve-style cycle monitor with:
 
 - active/in-use state;
-- remaining duration;
+- remaining duration, including programs longer than 60 minutes;
 - current program and phase (custom read-only characteristics);
 - connection and appliance-error fault state;
 - a linked door contact sensor.

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.1
+
+- Publish both HomeKit valve duration characteristics so Apple Home can render
+  the running-cycle countdown instead of showing a waiting state.
+- Allow laundry cycles up to 24 hours instead of HomeKit's default 60-minute
+  valve limit.
+
 ## 2.0.0
 
 - Replace the deleted AWS Cognito app-client login with hOn CIAM/PKCE.

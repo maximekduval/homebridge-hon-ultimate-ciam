@@ -23,6 +23,8 @@ const DEFAULT_STATE: LaundryState = {
   remoteControl: false,
 };
 
+const MAX_CYCLE_DURATION_SECONDS = 24 * 60 * 60;
+
 function applianceType(device: HOnAppliance): string {
   return device.applianceTypeName ?? device.applianceTypeCode ?? '';
 }
@@ -34,6 +36,7 @@ function applianceName(device: HOnAppliance): string {
 export class LaundryAccessory {
   private readonly contactService: Service;
   private readonly customCharacteristics: LaundryCustomCharacteristics;
+  private cycleDurationSeconds = 0;
   private lastSummary = '';
   private state = DEFAULT_STATE;
   private readonly valveService: Service;
@@ -77,7 +80,13 @@ export class LaundryAccessory {
       );
     this.valveService
       .getCharacteristic(Characteristic.RemainingDuration)
+      .setProps({ maxValue: MAX_CYCLE_DURATION_SECONDS })
       .onGet(() => this.state.remainingSeconds);
+    this.valveService
+      .getCharacteristic(Characteristic.SetDuration)
+      .setProps({ maxValue: MAX_CYCLE_DURATION_SECONDS })
+      .onGet(() => this.cycleDurationSeconds)
+      .onSet((value) => this.rejectSetDuration(value));
     this.valveService
       .getCharacteristic(Characteristic.StatusFault)
       .onGet(() => this.statusFaultValue());
@@ -112,7 +121,9 @@ export class LaundryAccessory {
 
   public async refresh(): Promise<void> {
     const payload = await this.client.getContext(this.device);
+    const wasActive = this.state.active;
     this.state = normalizeLaundryState(payload, applianceType(this.device));
+    this.updateCycleDuration(wasActive);
     this.updateCharacteristics();
 
     const summary = [
@@ -147,6 +158,27 @@ export class LaundryAccessory {
     );
   }
 
+  private rejectSetDuration(value: CharacteristicValue): void {
+    if (Number(value) === this.cycleDurationSeconds) {
+      return;
+    }
+
+    throw new this.api.hap.HapStatusError(
+      this.api.hap.HAPStatus.READ_ONLY_CHARACTERISTIC,
+    );
+  }
+
+  private updateCycleDuration(wasActive: boolean): void {
+    if (!this.state.active) {
+      this.cycleDurationSeconds = 0;
+      return;
+    }
+
+    this.cycleDurationSeconds = wasActive
+      ? Math.max(this.cycleDurationSeconds, this.state.remainingSeconds)
+      : this.state.remainingSeconds;
+  }
+
   private statusFaultValue(): number {
     const { Characteristic } = this.api.hap;
     return !this.state.connected || Boolean(this.state.error)
@@ -175,6 +207,10 @@ export class LaundryAccessory {
         this.state.active
           ? Characteristic.InUse.IN_USE
           : Characteristic.InUse.NOT_IN_USE,
+      )
+      .updateCharacteristic(
+        Characteristic.SetDuration,
+        this.cycleDurationSeconds,
       )
       .updateCharacteristic(
         Characteristic.RemainingDuration,
