@@ -24,6 +24,31 @@ const DEFAULT_STATE: LaundryState = {
 };
 
 const MAX_CYCLE_DURATION_SECONDS = 24 * 60 * 60;
+const PHASE_SERVICE_SUBTYPE_PREFIX = 'laundry-phase-';
+
+type PhaseSensorId =
+  | 'weighing'
+  | 'washing'
+  | 'rinsing'
+  | 'spinning'
+  | 'drying'
+  | 'steam'
+  | 'finished';
+
+interface PhaseSensorDefinition {
+  id: PhaseSensorId;
+  name: string;
+}
+
+const PHASE_SENSOR_DEFINITIONS: PhaseSensorDefinition[] = [
+  { id: 'weighing', name: 'Pesage' },
+  { id: 'washing', name: 'Lavage' },
+  { id: 'rinsing', name: 'Rinçage' },
+  { id: 'spinning', name: 'Essorage' },
+  { id: 'drying', name: 'Séchage' },
+  { id: 'steam', name: 'Vapeur / Refresh' },
+  { id: 'finished', name: 'Terminé' },
+];
 
 function applianceType(device: HOnAppliance): string {
   return device.applianceTypeName ?? device.applianceTypeCode ?? '';
@@ -39,6 +64,7 @@ export class LaundryAccessory {
   private cycleDurationSeconds = 0;
   private lastReportedRemainingSeconds: number | undefined;
   private lastSummary = '';
+  private readonly phaseServices = new Map<PhaseSensorId, Service>();
   private remainingSecondsAtSync = 0;
   private remainingSyncTimestampMs = 0;
   private state = DEFAULT_STATE;
@@ -50,6 +76,7 @@ export class LaundryAccessory {
     private readonly client: HOnApiClient,
     private readonly accessory: PlatformAccessory,
     private device: HOnAppliance,
+    exposePhaseSensors = true,
   ) {
     const { Characteristic, Service } = api.hap;
     const name = applianceName(device);
@@ -63,6 +90,7 @@ export class LaundryAccessory {
         Characteristic.ValveType,
         Characteristic.ValveType.GENERIC_VALVE,
       );
+    this.valveService.setPrimaryService();
 
     this.valveService
       .getCharacteristic(Characteristic.Active)
@@ -108,6 +136,8 @@ export class LaundryAccessory {
       .getCharacteristic(Characteristic.StatusFault)
       .onGet(() => this.statusFaultValue());
     this.valveService.addLinkedService(this.contactService);
+
+    this.configurePhaseServices(exposePhaseSensors);
 
     this.customCharacteristics = createLaundryCustomCharacteristics(
       api,
@@ -220,6 +250,80 @@ export class LaundryAccessory {
       : Characteristic.ContactSensorState.CONTACT_DETECTED;
   }
 
+  private configurePhaseServices(exposePhaseSensors: boolean): void {
+    const { Characteristic, Service } = this.api.hap;
+    const existingPhaseServices = this.accessory.services.filter(
+      (service) =>
+        service.UUID === Service.OccupancySensor.UUID &&
+        service.subtype?.startsWith(PHASE_SERVICE_SUBTYPE_PREFIX),
+    );
+
+    if (!exposePhaseSensors) {
+      for (const service of existingPhaseServices) {
+        this.accessory.removeService(service);
+      }
+      return;
+    }
+
+    for (const definition of PHASE_SENSOR_DEFINITIONS) {
+      const subtype = `${PHASE_SERVICE_SUBTYPE_PREFIX}${definition.id}`;
+      const service =
+        this.accessory.getServiceById(Service.OccupancySensor, subtype) ??
+        this.accessory.addService(
+          Service.OccupancySensor,
+          definition.name,
+          subtype,
+        );
+      service.setCharacteristic(Characteristic.Name, definition.name);
+      service
+        .getCharacteristic(Characteristic.OccupancyDetected)
+        .onGet(() => this.phaseSensorValue(definition.id));
+      service
+        .getCharacteristic(Characteristic.StatusActive)
+        .onGet(() => this.state.connected);
+      service
+        .getCharacteristic(Characteristic.StatusFault)
+        .onGet(() => this.statusFaultValue());
+      this.phaseServices.set(definition.id, service);
+      this.valveService.addLinkedService(service);
+    }
+  }
+
+  private phaseSensorDetected(id: PhaseSensorId): boolean {
+    const type = applianceType(this.device);
+
+    if (id === 'finished') {
+      return this.state.machineMode === 'finished';
+    }
+    if (!this.state.active) {
+      return false;
+    }
+
+    switch (id) {
+      case 'drying':
+        return (
+          ['drying', 'cooldown', 'tumbling'].includes(this.state.phase) ||
+          (type === 'TD' && this.state.phase === 'heating')
+        );
+      case 'steam':
+        return ['steam', 'refresh'].includes(this.state.phase);
+      case 'washing':
+        return (
+          this.state.phase === 'washing' ||
+          (type !== 'TD' && this.state.phase === 'heating')
+        );
+      default:
+        return this.state.phase === id;
+    }
+  }
+
+  private phaseSensorValue(id: PhaseSensorId): number {
+    const { Characteristic } = this.api.hap;
+    return this.phaseSensorDetected(id)
+      ? Characteristic.OccupancyDetected.OCCUPANCY_DETECTED
+      : Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED;
+  }
+
   private updateCharacteristics(): void {
     const { Characteristic } = this.api.hap;
     this.valveService
@@ -251,6 +355,16 @@ export class LaundryAccessory {
         this.contactStateValue(),
       )
       .updateCharacteristic(Characteristic.StatusFault, this.statusFaultValue());
+
+    for (const [id, service] of this.phaseServices) {
+      service
+        .updateCharacteristic(
+          Characteristic.OccupancyDetected,
+          this.phaseSensorValue(id),
+        )
+        .updateCharacteristic(Characteristic.StatusActive, this.state.connected)
+        .updateCharacteristic(Characteristic.StatusFault, this.statusFaultValue());
+    }
 
     this.customCharacteristics.phase.updateValue(this.state.phase);
     this.customCharacteristics.program.updateValue(this.state.program ?? '');

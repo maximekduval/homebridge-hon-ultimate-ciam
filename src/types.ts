@@ -5,6 +5,7 @@ export interface HOnUltimateConfig extends PlatformConfig {
   email?: string;
   password?: string;
   pollInterval?: number;
+  exposePhaseSensors?: boolean;
 }
 
 export interface CiamTokens {

@@ -6,7 +6,10 @@ import type { HOnApiClient } from '../src/hon-api';
 import { LaundryAccessory } from '../src/laundry-accessory';
 import type { HOnContextPayload } from '../src/types';
 
-function runningContext(remainingMinutes: number): HOnContextPayload {
+function runningContext(
+  remainingMinutes: number,
+  phase = 1,
+): HOnContextPayload {
   return {
     activity: {
       category: 'CYCLE',
@@ -19,7 +22,7 @@ function runningContext(remainingMinutes: number): HOnContextPayload {
       parameters: {
         doorStatus: { parNewVal: '0' },
         machMode: { parNewVal: '2' },
-        prPhase: { parNewVal: '1' },
+        prPhase: { parNewVal: String(phase) },
       },
     },
   };
@@ -32,8 +35,8 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
     const getContext = vi
       .fn()
       .mockResolvedValueOnce(runningContext(78))
-      .mockResolvedValueOnce(runningContext(78))
-      .mockResolvedValueOnce(runningContext(77))
+      .mockResolvedValueOnce(runningContext(78, 4))
+      .mockResolvedValueOnce(runningContext(77, 3))
       .mockResolvedValueOnce({
         activity: {},
         lastConnEvent: { category: 'CONNECTED' },
@@ -66,17 +69,44 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
     const valve = accessory.getService(hap.Service.Valve);
 
     expect(valve).toBeDefined();
+    expect(valve!.isPrimaryService).toBe(true);
     const remainingDuration = valve!.getCharacteristic(
       hap.Characteristic.RemainingDuration,
     );
     const setDuration = valve!.getCharacteristic(hap.Characteristic.SetDuration);
+    const washing = accessory.getServiceById(
+      hap.Service.OccupancySensor,
+      'laundry-phase-washing',
+    );
+    const rinsing = accessory.getServiceById(
+      hap.Service.OccupancySensor,
+      'laundry-phase-rinsing',
+    );
+    const spinning = accessory.getServiceById(
+      hap.Service.OccupancySensor,
+      'laundry-phase-spinning',
+    );
+    const finished = accessory.getServiceById(
+      hap.Service.OccupancySensor,
+      'laundry-phase-finished',
+    );
 
     expect(remainingDuration.props.maxValue).toBe(86_400);
     expect(setDuration.props.maxValue).toBe(86_400);
+    expect(washing).toBeDefined();
+    expect(rinsing).toBeDefined();
+    expect(spinning).toBeDefined();
+    expect(finished).toBeDefined();
 
     await laundryAccessory.refresh();
     expect(remainingDuration.value).toBe(4_680);
     expect(setDuration.value).toBe(4_680);
+    expect(
+      washing!.getCharacteristic(hap.Characteristic.OccupancyDetected).value,
+    ).toBe(hap.Characteristic.OccupancyDetected.OCCUPANCY_DETECTED);
+    expect(
+      rinsing!.getCharacteristic(hap.Characteristic.OccupancyDetected).value,
+    ).toBe(hap.Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED);
 
     vi.advanceTimersByTime(4_000);
     expect(await remainingDuration.handleGetRequest()).toBe(4_676);
@@ -86,15 +116,33 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
     expect(remainingDuration.value).toBe(4_650);
     expect(await remainingDuration.handleGetRequest()).toBe(4_650);
     expect(setDuration.value).toBe(4_680);
+    expect(
+      washing!.getCharacteristic(hap.Characteristic.OccupancyDetected).value,
+    ).toBe(hap.Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED);
+    expect(
+      rinsing!.getCharacteristic(hap.Characteristic.OccupancyDetected).value,
+    ).toBe(hap.Characteristic.OccupancyDetected.OCCUPANCY_DETECTED);
 
     vi.advanceTimersByTime(30_000);
     await laundryAccessory.refresh();
     expect(remainingDuration.value).toBe(4_620);
     expect(setDuration.value).toBe(4_680);
+    expect(
+      rinsing!.getCharacteristic(hap.Characteristic.OccupancyDetected).value,
+    ).toBe(hap.Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED);
+    expect(
+      spinning!.getCharacteristic(hap.Characteristic.OccupancyDetected).value,
+    ).toBe(hap.Characteristic.OccupancyDetected.OCCUPANCY_DETECTED);
 
     await laundryAccessory.refresh();
     expect(remainingDuration.value).toBe(0);
     expect(setDuration.value).toBe(0);
+    expect(
+      spinning!.getCharacteristic(hap.Characteristic.OccupancyDetected).value,
+    ).toBe(hap.Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED);
+    expect(
+      finished!.getCharacteristic(hap.Characteristic.OccupancyDetected).value,
+    ).toBe(hap.Characteristic.OccupancyDetected.OCCUPANCY_DETECTED);
 
     vi.useRealTimers();
   });

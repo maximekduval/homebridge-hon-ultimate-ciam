@@ -120,7 +120,14 @@ export class HOnUltimatePlatform implements DynamicPlatformPlugin {
         } else {
           this.handlers.set(
             uuid,
-            new LaundryAccessory(this.api, this.log, this.client, accessory, device),
+            new LaundryAccessory(
+              this.api,
+              this.log,
+              this.client,
+              accessory,
+              device,
+              this.config.exposePhaseSensors !== false,
+            ),
           );
         }
       }

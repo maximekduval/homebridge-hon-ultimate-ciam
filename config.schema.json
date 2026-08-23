@@ -31,6 +31,12 @@
         "default": 30,
         "minimum": 10,
         "maximum": 3600
+      },
+      "exposePhaseSensors": {
+        "title": "Expose Cycle Phase Sensors",
+        "description": "Adds read-only HomeKit sensors for weighing, washing, rinsing, spinning, drying, steam/refresh and cycle completion.",
+        "type": "boolean",
+        "default": true
       }
     }
   }

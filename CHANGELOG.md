@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.0
+
+- Add linked, read-only HomeKit occupancy sensors for weighing, washing,
+  rinsing, spinning, drying, steam/refresh and cycle completion.
+- Make the timed valve the accessory's explicit primary service.
+- Add the `exposePhaseSensors` setting, enabled by default.
+
 ## 2.0.3
 
 - Prefer the appliance's live `shadow.parameters` over the static cycle-start
