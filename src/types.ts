@@ -4,6 +4,7 @@ export interface HOnUltimateConfig extends PlatformConfig {
   username?: string;
   email?: string;
   password?: string;
+  idlePollInterval?: number;
   pollInterval?: number;
   exposeDoorLock?: boolean;
   exposePhaseSensors?: boolean;

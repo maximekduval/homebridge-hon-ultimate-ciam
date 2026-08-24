@@ -12,7 +12,7 @@ import {
   HON_USER_AGENT,
   REQUEST_TIMEOUT_MS,
 } from './settings';
-import type { HOnAppliance, HOnContextPayload } from './types';
+import type { CiamTokens, HOnAppliance, HOnContextPayload } from './types';
 
 interface ApplianceListResponse {
   modules?: {
@@ -86,8 +86,9 @@ export class HOnApiClient {
   private async request<T>(
     config: AxiosRequestConfig,
     retry = true,
+    suppliedTokens?: CiamTokens,
   ): Promise<AxiosResponse<T>> {
-    const tokens = await this.auth.getTokens();
+    const tokens = suppliedTokens ?? (await this.auth.getTokens());
     try {
       return await this.http.request<T>({
         ...config,
@@ -103,8 +104,8 @@ export class HOnApiClient {
         axios.isAxiosError(error) &&
         (error.response?.status === 401 || error.response?.status === 403)
       ) {
-        await this.auth.getTokens(true);
-        return this.request<T>(config, false);
+        const freshTokens = await this.auth.getTokens(true);
+        return this.request<T>(config, false, freshTokens);
       }
 
       throw new HOnApiError(`hOn API request failed: ${safeErrorMessage(error)}`, {

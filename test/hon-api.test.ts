@@ -87,4 +87,49 @@ describe('HOnApiClient', () => {
       }),
     );
   });
+
+  it('reauthenticates once and retries an API request rejected with HTTP 403', async () => {
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce({
+        isAxiosError: true,
+        response: { status: 403 },
+      })
+      .mockResolvedValueOnce({ data: { payload: {} } });
+    const getTokens = vi
+      .fn()
+      .mockResolvedValueOnce({
+        idToken: 'expired-id-token',
+        accessToken: '',
+        refreshToken: '',
+        cognitoToken: 'expired-cognito-token',
+      })
+      .mockResolvedValueOnce({
+        idToken: 'fresh-id-token',
+        accessToken: '',
+        refreshToken: '',
+        cognitoToken: 'fresh-cognito-token',
+      });
+    const client = new HOnApiClient('user', 'password', {
+      auth: { getTokens } as unknown as HOnAuthClient,
+      http: { request } as unknown as AxiosInstance,
+    });
+
+    await client.getContext({
+      applianceTypeName: 'WM',
+      macAddress: 'aa-bb-cc-dd-ee-ff',
+    });
+
+    expect(getTokens).toHaveBeenCalledTimes(2);
+    expect(getTokens).toHaveBeenNthCalledWith(2, true);
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(request.mock.calls[1]?.[0]).toEqual(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'cognito-token': 'fresh-cognito-token',
+          'id-token': 'fresh-id-token',
+        }),
+      }),
+    );
+  });
 });

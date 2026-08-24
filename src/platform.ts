@@ -9,7 +9,9 @@ import { HOnApiError, safeErrorMessage } from './errors';
 import { HOnApiClient } from './hon-api';
 import { LaundryAccessory } from './laundry-accessory';
 import {
+  DEFAULT_IDLE_POLL_INTERVAL_SECONDS,
   DEFAULT_POLL_INTERVAL_SECONDS,
+  MAX_ERROR_BACKOFF_SECONDS,
   MIN_POLL_INTERVAL_SECONDS,
   PLATFORM_NAME,
   PLUGIN_NAME,
@@ -25,11 +27,29 @@ function getApplianceName(device: HOnAppliance): string {
   return device.nickName || device.modelName || `hOn ${getApplianceType(device)}`;
 }
 
+export function calculatePollDelaySeconds(
+  activeIntervalSeconds: number,
+  idleIntervalSeconds: number,
+  active: boolean,
+  consecutiveFailures: number,
+): number {
+  const normalDelay = active ? activeIntervalSeconds : idleIntervalSeconds;
+  if (!consecutiveFailures) {
+    return normalDelay;
+  }
+  return Math.min(
+    MAX_ERROR_BACKOFF_SECONDS,
+    normalDelay * 2 ** Math.min(consecutiveFailures, 10),
+  );
+}
+
 export class HOnUltimatePlatform implements DynamicPlatformPlugin {
   private readonly accessories: PlatformAccessory[] = [];
   private readonly client?: HOnApiClient;
+  private consecutivePollFailures = 0;
   private discovering = false;
   private readonly handlers = new Map<string, LaundryAccessory>();
+  private readonly idlePollIntervalSeconds: number;
   private pollTimer?: NodeJS.Timeout;
   private polling = false;
   private readonly pollIntervalSeconds: number;
@@ -48,6 +68,13 @@ export class HOnUltimatePlatform implements DynamicPlatformPlugin {
         ? configuredInterval
         : DEFAULT_POLL_INTERVAL_SECONDS,
     );
+    const configuredIdleInterval = Number(config.idlePollInterval);
+    this.idlePollIntervalSeconds = Math.max(
+      this.pollIntervalSeconds,
+      Number.isFinite(configuredIdleInterval)
+        ? configuredIdleInterval
+        : DEFAULT_IDLE_POLL_INTERVAL_SECONDS,
+    );
 
     if (!username || !password) {
       this.log.error('Missing hOn account email or password in the plugin settings.');
@@ -60,7 +87,7 @@ export class HOnUltimatePlatform implements DynamicPlatformPlugin {
     });
     this.api.on('shutdown', () => {
       if (this.pollTimer) {
-        clearInterval(this.pollTimer);
+        clearTimeout(this.pollTimer);
       }
     });
   }
@@ -75,9 +102,7 @@ export class HOnUltimatePlatform implements DynamicPlatformPlugin {
     }
 
     await this.discoverDevices();
-    this.pollTimer = setInterval(() => {
-      void this.pollAll();
-    }, this.pollIntervalSeconds * 1_000);
+    await this.pollAndSchedule();
   }
 
   private async discoverDevices(): Promise<void> {
@@ -154,7 +179,6 @@ export class HOnUltimatePlatform implements DynamicPlatformPlugin {
         supported.length,
         skipped ? `, ${skipped} unsupported appliance(s) skipped` : '',
       );
-      await this.pollAll();
     } catch (error) {
       const message =
         error instanceof HOnApiError ? error.message : safeErrorMessage(error);
@@ -164,9 +188,31 @@ export class HOnUltimatePlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async pollAll(): Promise<void> {
+  private async pollAndSchedule(): Promise<void> {
+    const succeeded = await this.pollAll();
+    this.consecutivePollFailures = succeeded
+      ? 0
+      : this.consecutivePollFailures + 1;
+
+    const active = [...this.handlers.values()].some((handler) => handler.isActive);
+    const delay = calculatePollDelaySeconds(
+      this.pollIntervalSeconds,
+      this.idlePollIntervalSeconds,
+      active,
+      this.consecutivePollFailures,
+    );
+
+    if (!succeeded) {
+      this.log.warn('Next hOn refresh attempt in %d seconds.', delay);
+    }
+    this.pollTimer = setTimeout(() => {
+      void this.pollAndSchedule();
+    }, delay * 1_000);
+  }
+
+  private async pollAll(): Promise<boolean> {
     if (this.polling || !this.handlers.size) {
-      return;
+      return true;
     }
     this.polling = true;
 
@@ -179,6 +225,7 @@ export class HOnUltimatePlatform implements DynamicPlatformPlugin {
           this.log.warn('Unable to refresh an hOn appliance: %s', safeErrorMessage(result.reason));
         }
       }
+      return results.every((result) => result.status === 'fulfilled');
     } finally {
       this.polling = false;
     }

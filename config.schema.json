@@ -26,10 +26,19 @@
         }
       },
       "pollInterval": {
-        "title": "Polling Interval (seconds)",
+        "title": "Active Polling Interval (seconds)",
+        "description": "Refresh interval while at least one laundry cycle is active.",
         "type": "integer",
         "default": 30,
         "minimum": 10,
+        "maximum": 3600
+      },
+      "idlePollInterval": {
+        "title": "Idle Polling Interval (seconds)",
+        "description": "Refresh interval while all appliances are idle. Defaults to five minutes to reduce hOn API traffic.",
+        "type": "integer",
+        "default": 300,
+        "minimum": 30,
         "maximum": 3600
       },
       "exposePhaseSensors": {

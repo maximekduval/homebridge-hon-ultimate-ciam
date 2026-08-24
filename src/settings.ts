@@ -8,6 +8,8 @@ export const HON_MOBILE_ID = 'homebridge-hon';
 export const HON_USER_AGENT = 'Chrome/999.999.999.999';
 
 export const DEFAULT_POLL_INTERVAL_SECONDS = 30;
+export const DEFAULT_IDLE_POLL_INTERVAL_SECONDS = 5 * 60;
+export const MAX_ERROR_BACKOFF_SECONDS = 30 * 60;
 export const MIN_POLL_INTERVAL_SECONDS = 10;
 export const REQUEST_TIMEOUT_MS = 20_000;
 

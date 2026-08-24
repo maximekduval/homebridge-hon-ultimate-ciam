@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.2.0
+
+- Renew the eight-hour hOn token with a complete CIAM/PKCE authentication
+  instead of replaying a session that can keep returning rejected tokens.
+- Retry an unauthorized API request once with the new credentials, without a
+  Homebridge restart.
+- Poll active cycles every 30 seconds but idle appliances every five minutes by
+  default, reducing idle API traffic by 90 percent.
+- Add exponential retry backoff up to 30 minutes so an API outage or persistent
+  authorization error cannot generate a request and warning every 30 seconds.
+- Add the configurable `idlePollInterval` setting.
+
 ## 2.1.2
 
 - Initialize the linked door lock as unsecured instead of unknown before the

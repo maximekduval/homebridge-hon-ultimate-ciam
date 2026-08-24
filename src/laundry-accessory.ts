@@ -155,6 +155,10 @@ export class LaundryAccessory {
     this.configureAccessoryInformation();
   }
 
+  public get isActive(): boolean {
+    return this.state.active;
+  }
+
   public async refresh(): Promise<void> {
     const payload = await this.client.getContext(this.device);
     const wasActive = this.state.active;

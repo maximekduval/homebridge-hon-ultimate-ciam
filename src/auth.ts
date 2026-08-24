@@ -49,9 +49,7 @@ export class HOnAuthClient {
   private readonly http: AxiosInstance;
   private expiresAt = 0;
   private inFlight?: Promise<CiamTokens>;
-  private sessionId = '';
   private tokens?: CiamTokens;
-  private verifier = '';
 
   public constructor(
     private readonly username: string,
@@ -77,7 +75,10 @@ export class HOnAuthClient {
     }
 
     if (!this.inFlight) {
-      this.inFlight = this.refreshOrAuthenticate().finally(() => {
+      // A CIAM session/code-verifier replay can return tokens that the unified
+      // API already rejects. A fresh PKCE authorization is cheap (a few times
+      // per day) and is the only recovery equivalent to a bridge restart.
+      this.inFlight = this.authenticate().finally(() => {
         this.inFlight = undefined;
       });
     }
@@ -87,21 +88,7 @@ export class HOnAuthClient {
 
   public clear(): void {
     this.expiresAt = 0;
-    this.sessionId = '';
     this.tokens = undefined;
-    this.verifier = '';
-  }
-
-  private async refreshOrAuthenticate(): Promise<CiamTokens> {
-    if (this.sessionId && this.verifier) {
-      try {
-        return await this.exchangeTokens(this.sessionId, this.verifier);
-      } catch {
-        this.clear();
-      }
-    }
-
-    return this.authenticate();
   }
 
   private async authenticate(): Promise<CiamTokens> {
@@ -120,8 +107,6 @@ export class HOnAuthClient {
         throw new HOnApiError('hOn CIAM did not return a session identifier.');
       }
 
-      this.sessionId = sessionId;
-      this.verifier = verifier;
       return await this.exchangeTokens(sessionId, verifier);
     } catch (error) {
       this.clear();

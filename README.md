@@ -83,6 +83,7 @@ The original configuration keys remain valid:
       "username": "your-hon-account@example.com",
       "password": "your-hon-password",
       "pollInterval": 30,
+      "idlePollInterval": 300,
       "exposeDoorLock": true,
       "exposePhaseSensors": true
     }
@@ -91,6 +92,12 @@ The original configuration keys remain valid:
 ```
 
 The deprecated `email` key is also accepted as an alias for `username`.
+
+Polling is adaptive: `pollInterval` is used during a running cycle and
+`idlePollInterval` while every appliance is idle. The defaults are 30 seconds
+and five minutes respectively. Persistent API failures use exponential backoff
+up to 30 minutes. Authentication is renewed automatically before hOn's
+eight-hour token expires.
 
 If an accessory from the old package remains after migration, use Homebridge
 UI's cached-accessory removal tool once, then restart the child bridge. The
