@@ -58,6 +58,7 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
       hap.uuid.generate('test-washing-machine'),
     ) as unknown as PlatformAccessory;
     (accessory as PlatformAccessory & { context: Record<string, unknown> }).context = {};
+    accessory.addService(hap.Service.ContactSensor, 'Lave-linge Door', 'door');
     const laundryAccessory = new LaundryAccessory(
       { hap } as unknown as API,
       log,
@@ -77,6 +78,9 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
 
     expect(valve).toBeDefined();
     expect(doorLock).toBeDefined();
+    expect(
+      accessory.getServiceById(hap.Service.ContactSensor, 'door'),
+    ).toBeUndefined();
     expect(valve!.isPrimaryService).toBe(true);
     const remainingDuration = valve!.getCharacteristic(
       hap.Characteristic.RemainingDuration,

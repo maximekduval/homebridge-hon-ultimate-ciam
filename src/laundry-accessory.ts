@@ -59,7 +59,6 @@ function applianceName(device: HOnAppliance): string {
 }
 
 export class LaundryAccessory {
-  private readonly contactService: Service;
   private readonly customCharacteristics: LaundryCustomCharacteristics;
   private cycleDurationSeconds = 0;
   private lastReportedRemainingSeconds: number | undefined;
@@ -124,21 +123,7 @@ export class LaundryAccessory {
       .getCharacteristic(Characteristic.StatusFault)
       .onGet(() => this.statusFaultValue());
 
-    this.contactService =
-      accessory.getServiceById(Service.ContactSensor, 'door') ??
-      accessory.addService(Service.ContactSensor, `${name} Door`, 'door');
-    this.contactService.setCharacteristic(
-      Characteristic.Name,
-      `${name} Door`,
-    );
-    this.contactService
-      .getCharacteristic(Characteristic.ContactSensorState)
-      .onGet(() => this.contactStateValue());
-    this.contactService
-      .getCharacteristic(Characteristic.StatusFault)
-      .onGet(() => this.statusFaultValue());
-    this.valveService.addLinkedService(this.contactService);
-
+    this.removeLegacyDoorContactService();
     this.lockService = this.configureDoorLockService(exposeDoorLock);
     this.configurePhaseServices(exposePhaseSensors);
 
@@ -254,11 +239,14 @@ export class LaundryAccessory {
       : Characteristic.StatusFault.NO_FAULT;
   }
 
-  private contactStateValue(): number {
-    const { Characteristic } = this.api.hap;
-    return this.state.doorOpen
-      ? Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
-      : Characteristic.ContactSensorState.CONTACT_DETECTED;
+  private removeLegacyDoorContactService(): void {
+    const existing = this.accessory.getServiceById(
+      this.api.hap.Service.ContactSensor,
+      'door',
+    );
+    if (existing) {
+      this.accessory.removeService(existing);
+    }
   }
 
   private configureDoorLockService(exposeDoorLock: boolean): Service | undefined {
@@ -425,13 +413,6 @@ export class LaundryAccessory {
       .updateCharacteristic(
         Characteristic.RemainingDuration,
         this.currentRemainingSeconds(),
-      )
-      .updateCharacteristic(Characteristic.StatusFault, this.statusFaultValue());
-
-    this.contactService
-      .updateCharacteristic(
-        Characteristic.ContactSensorState,
-        this.contactStateValue(),
       )
       .updateCharacteristic(Characteristic.StatusFault, this.statusFaultValue());
 

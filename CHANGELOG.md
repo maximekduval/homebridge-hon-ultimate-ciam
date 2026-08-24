@@ -11,6 +11,9 @@
 - Add exponential retry backoff up to 30 minutes so an API outage or persistent
   authorization error cannot generate a request and warning every 30 seconds.
 - Add the configurable `idlePollInterval` setting.
+- Remove the redundant door contact sensor and keep only the linked, read-only
+  locked/unlocked service. Existing cached contact services are removed during
+  accessory initialization.
 
 ## 2.1.2
 
