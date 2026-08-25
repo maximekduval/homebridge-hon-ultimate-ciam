@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.2.1
+
+- Switch immediately to the active polling interval when an idle appliance
+  reports its door locked, capturing weighing and other short startup phases
+  before hOn changes `machMode` from ready to running.
+- Return to the five-minute idle interval when the appliance is inactive and
+  the door is unlocked.
+
 ## 2.2.0
 
 - Renew the eight-hour hOn token with a complete CIAM/PKCE authentication

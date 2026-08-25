@@ -27,7 +27,7 @@
       },
       "pollInterval": {
         "title": "Active Polling Interval (seconds)",
-        "description": "Refresh interval while at least one laundry cycle is active.",
+        "description": "Refresh interval while at least one laundry cycle is active or its door is locked during startup.",
         "type": "integer",
         "default": 30,
         "minimum": 10,

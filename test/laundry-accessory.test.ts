@@ -29,7 +29,51 @@ function runningContext(
   };
 }
 
+function readyContext(locked: boolean): HOnContextPayload {
+  return {
+    activity: {},
+    lastConnEvent: { category: 'CONNECTED' },
+    shadow: {
+      parameters: {
+        doorLockStatus: { parNewVal: locked ? '1' : '0' },
+        doorStatus: { parNewVal: '0' },
+        machMode: { parNewVal: '0' },
+        prPhase: { parNewVal: '0' },
+      },
+    },
+  };
+}
+
 describe('LaundryAccessory HomeKit cycle timer', () => {
+  it('requests rapid polling as soon as an idle appliance locks its door', async () => {
+    const getContext = vi
+      .fn()
+      .mockResolvedValueOnce(readyContext(true))
+      .mockResolvedValueOnce(readyContext(false));
+    const accessory = new hap.Accessory(
+      'Lave-linge',
+      hap.uuid.generate('test-startup-polling'),
+    ) as unknown as PlatformAccessory;
+    (accessory as PlatformAccessory & { context: Record<string, unknown> }).context = {};
+    const laundryAccessory = new LaundryAccessory(
+      { hap } as unknown as API,
+      { info: vi.fn() } as unknown as Logger,
+      { getContext } as unknown as HOnApiClient,
+      accessory,
+      {
+        applianceTypeName: 'WM',
+        macAddress: '11-22-33-44-55-66',
+        modelName: 'HW100-B14367U-FR',
+      },
+    );
+
+    expect(laundryAccessory.shouldPollRapidly).toBe(false);
+    await laundryAccessory.refresh();
+    expect(laundryAccessory.shouldPollRapidly).toBe(true);
+    await laundryAccessory.refresh();
+    expect(laundryAccessory.shouldPollRapidly).toBe(false);
+  });
+
   it('publishes a countdown longer than the default 60-minute valve limit', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-23T16:00:00.000Z'));

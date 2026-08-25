@@ -140,8 +140,11 @@ export class LaundryAccessory {
     this.configureAccessoryInformation();
   }
 
-  public get isActive(): boolean {
-    return this.state.active;
+  public get shouldPollRapidly(): boolean {
+    // hOn can briefly keep machMode at "ready" after a program starts. The
+    // door lock changes first, so keep polling at the active interval until
+    // the cloud publishes the running state (and until it unlocks at the end).
+    return this.state.active || this.effectiveDoorLocked();
   }
 
   public async refresh(): Promise<void> {

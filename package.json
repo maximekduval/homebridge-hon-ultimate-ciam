@@ -1,6 +1,6 @@
 {
   "name": "homebridge-hon-ultimate-mk",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Homebridge plugin for Haier, Candy and Hoover hOn laundry appliances using the current CIAM/PKCE API.",
   "license": "MIT",
   "author": "maximekduval",

@@ -194,11 +194,13 @@ export class HOnUltimatePlatform implements DynamicPlatformPlugin {
       ? 0
       : this.consecutivePollFailures + 1;
 
-    const active = [...this.handlers.values()].some((handler) => handler.isActive);
+    const shouldPollRapidly = [...this.handlers.values()].some(
+      (handler) => handler.shouldPollRapidly,
+    );
     const delay = calculatePollDelaySeconds(
       this.pollIntervalSeconds,
       this.idlePollIntervalSeconds,
-      active,
+      shouldPollRapidly,
       this.consecutivePollFailures,
     );
 
