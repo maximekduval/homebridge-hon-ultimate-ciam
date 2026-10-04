@@ -21,7 +21,10 @@ UI.
 
 The **Release** workflow authenticates with npm trusted publishing, configured
 on npmjs.com for this repository and `release.yml` with the stage-only
-permission, so no npm token is stored in GitHub.
+permission, so no npm token is stored in GitHub. That configuration is tied to
+the repository name and the workflow file name: if either is renamed, update the
+trusted publisher in the package settings on npmjs.com before the next release,
+or the **Release** workflow is refused.
 
 ## Release notes in the Homebridge UI
 

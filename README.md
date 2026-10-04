@@ -7,6 +7,10 @@ This fork replaces the deleted Cognito client used by
 `homebridge-hon-ultimate@1.0.5` with hOn's current CIAM/PKCE authentication and
 the unified appliance API introduced in 2026.
 
+It is published on npm as `homebridge-hon-ultimate-mk`. On GitHub the
+repository is called `homebridge-hon-ultimate-ciam` (CIAM is the hOn sign-in
+system this fork adds). Both names designate this same plugin.
+
 > This plugin relies on an undocumented cloud API. hOn can change the API
 > without notice. Do not remove the official hOn app.
 
