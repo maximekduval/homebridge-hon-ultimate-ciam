@@ -50,6 +50,17 @@ const PHASE_SENSOR_DEFINITIONS: PhaseSensorDefinition[] = [
   { id: 'finished', name: 'Terminé' },
 ];
 
+// Home names linked services after the accessory unless they carry
+// ConfiguredName. Set it only once so a later rename made in Home is kept.
+function nameService(api: API, service: Service, name: string): void {
+  const { Characteristic } = api.hap;
+  service.setCharacteristic(Characteristic.Name, name);
+  if (!service.testCharacteristic(Characteristic.ConfiguredName)) {
+    service.addOptionalCharacteristic(Characteristic.ConfiguredName);
+    service.setCharacteristic(Characteristic.ConfiguredName, name);
+  }
+}
+
 function applianceType(device: HOnAppliance): string {
   return device.applianceTypeName ?? device.applianceTypeCode ?? '';
 }
@@ -273,7 +284,7 @@ export class LaundryAccessory {
         'Verrouillage porte',
         'door-lock',
       );
-    service.setCharacteristic(Characteristic.Name, 'Verrouillage porte');
+    nameService(this.api, service, 'Verrouillage porte');
     service
       .getCharacteristic(Characteristic.LockCurrentState)
       .onGet(() => this.currentDoorLockStateValue())
@@ -344,7 +355,7 @@ export class LaundryAccessory {
           definition.name,
           subtype,
         );
-      service.setCharacteristic(Characteristic.Name, definition.name);
+      nameService(this.api, service, definition.name);
       service
         .getCharacteristic(Characteristic.OccupancyDetected)
         .onGet(() => this.phaseSensorValue(definition.id));

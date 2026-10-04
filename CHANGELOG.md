@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Give the door lock and phase sensors their own `ConfiguredName` so Apple Home
+  stops showing the accessory's name on every tile after a rename. The name is
+  set only once, so a name later chosen in Home survives restarts. Reported by
+  Hunter.
+
 ## 2.2.1
 
 - Switch immediately to the active polling interval when an idle appliance
