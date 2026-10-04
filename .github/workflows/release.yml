@@ -1,11 +1,14 @@
 name: Release
 
-# Publishes the package to npm when a version tag such as v2.2.2 is pushed.
+# Stages the package on npm when a version tag such as v2.2.2 is pushed. The
+# staged version is not public until a maintainer approves it with 2FA, on
+# npmjs.com (package > Staged Packages) or with `npm stage approve`.
 #
 # Authentication uses npm trusted publishing (OIDC), so no npm token is stored
-# in GitHub. The trusted publisher must be configured once on npmjs.com, in the
-# package settings, for this repository and this workflow file name
-# (release.yml).
+# in GitHub. The trusted publisher is configured on npmjs.com, in the package
+# settings, for this repository and this workflow file name (release.yml) with
+# the stage-only permission: `npm publish` is refused and `npm stage publish`
+# is the only accepted command.
 
 on:
   push:
@@ -47,9 +50,26 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
 
+      # npm stage publish needs npm 11.15.0 or later, which Node 24 may not bundle.
+      - name: Update npm
+        run: npm install -g npm@^11.15.0
+
       - name: Install dependencies
         run: npm ci
 
       # prepack runs the type check, the tests and the build before packing.
-      - name: Publish
-        run: npm publish
+      - name: Stage the package on npm
+        run: npm stage publish
+
+      - name: Explain how to approve
+        run: |
+          name="$(node -p "require('./package.json').name")"
+          {
+            echo "### ${GITHUB_REF_NAME} is staged on npm"
+            echo
+            echo "It is not public yet. Approve it with 2FA on npmjs.com (package > Staged Packages) or run:"
+            echo
+            echo '```'
+            echo "npm stage approve ${name}@${GITHUB_REF_NAME#v}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
