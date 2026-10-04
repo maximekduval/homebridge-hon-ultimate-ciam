@@ -223,4 +223,51 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
 
     vi.useRealTimers();
   });
+
+  it('names linked services independently and keeps names chosen in Home', () => {
+    const accessory = new hap.Accessory(
+      'Lave-linge',
+      hap.uuid.generate('test-configured-names'),
+    ) as unknown as PlatformAccessory;
+    (accessory as PlatformAccessory & { context: Record<string, unknown> }).context = {};
+    const createAccessory = () =>
+      new LaundryAccessory(
+        { hap } as unknown as API,
+        { info: vi.fn() } as unknown as Logger,
+        { getContext: vi.fn() } as unknown as HOnApiClient,
+        accessory,
+        {
+          applianceTypeName: 'WM',
+          macAddress: '22-33-44-55-66-77',
+          modelName: 'HW100-B14367U-FR',
+        },
+      );
+    const configuredName = (service: hap.Service | undefined) =>
+      service?.testCharacteristic(hap.Characteristic.ConfiguredName)
+        ? service.getCharacteristic(hap.Characteristic.ConfiguredName).value
+        : undefined;
+
+    createAccessory();
+    const doorLock = accessory.getServiceById(
+      hap.Service.LockMechanism,
+      'door-lock',
+    );
+    const washing = accessory.getServiceById(
+      hap.Service.OccupancySensor,
+      'laundry-phase-washing',
+    );
+
+    expect(configuredName(doorLock)).toBe('Verrouillage porte');
+    expect(configuredName(washing)).toBe('Lavage');
+    expect(
+      accessory
+        .getService(hap.Service.Valve)!
+        .testCharacteristic(hap.Characteristic.ConfiguredName),
+    ).toBe(false);
+
+    washing!.setCharacteristic(hap.Characteristic.ConfiguredName, 'Washing');
+    createAccessory();
+
+    expect(configuredName(washing)).toBe('Washing');
+  });
 });
