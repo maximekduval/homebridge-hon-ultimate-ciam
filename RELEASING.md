@@ -37,8 +37,10 @@ It reads both from the GitHub repository found in `homepage`, or else `bugs`, of
 
 To fill a release that already exists, or to create one for an existing tag, run
 the **Release notes** workflow from the Actions tab and give it the tag, for
-example `v2.2.2`. A description written by hand is never overwritten. To preview
-the notes of a version, run `node scripts/changelog-section.mjs 2.2.2`.
+example `v2.2.2`. A description written by hand is never overwritten. Check
+`latest` only for the newest version: GitHub marks a new release as the latest
+one, and an older version must not take that label. To preview the notes of a
+version, run `node scripts/changelog-section.mjs 2.2.2`.
 
 ## Using this in another plugin
 
