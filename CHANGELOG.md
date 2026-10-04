@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.2.2
 
 - Give the door lock and phase sensors their own `ConfiguredName` so Apple Home
   stops showing the accessory's name on every tile after a rename. The name is
