@@ -7,7 +7,10 @@ name: Release notes
 #
 # A description written by hand is left alone. To fill a release that already
 # exists, or to create one for a tag that has none, start this workflow from the
-# Actions tab and give it the tag, for example v2.2.2.
+# Actions tab and give it the tag, for example v2.2.2. GitHub marks a new
+# release as the latest one, so "latest" stays unchecked unless the tag is the
+# newest version: an older version can then be added without taking the label
+# from the newest one.
 
 on:
   release:
@@ -18,6 +21,11 @@ on:
         description: Tag of the release to fill, for example v2.2.2
         required: true
         type: string
+      latest:
+        description: Mark the release as the latest one (only for the newest version)
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -35,6 +43,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      LATEST: ${{ inputs.latest || false }}
     steps:
       # A release event checks out its tag, so the changelog is the one the
       # release was made from. A manual run checks out the default branch.
@@ -57,11 +66,15 @@ jobs:
             body="$(gh release view "${TAG}" --json body --jq .body)"
             if [ -n "${body//[[:space:]]/}" ]; then
               echo "Release ${TAG} already has a description, leaving it as it is."
-              exit 0
+            else
+              gh release edit "${TAG}" --notes-file "${RUNNER_TEMP}/notes.md"
+              echo "Filled the description of release ${TAG} from CHANGELOG.md."
             fi
-            gh release edit "${TAG}" --notes-file "${RUNNER_TEMP}/notes.md"
-            echo "Filled the description of release ${TAG} from CHANGELOG.md."
+            if [ "${LATEST}" = "true" ]; then
+              gh release edit "${TAG}" --latest
+              echo "Marked release ${TAG} as the latest one."
+            fi
           else
-            gh release create "${TAG}" --verify-tag --title "${TAG}" --notes-file "${RUNNER_TEMP}/notes.md"
+            gh release create "${TAG}" --verify-tag --title "${TAG}" --latest="${LATEST}" --notes-file "${RUNNER_TEMP}/notes.md"
             echo "Created release ${TAG} with the notes from CHANGELOG.md."
           fi
