@@ -223,51 +223,86 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
 
     vi.useRealTimers();
   });
+});
 
-  it('names linked services independently and keeps names chosen in Home', () => {
-    const accessory = new hap.Accessory(
-      'Lave-linge',
-      hap.uuid.generate('test-configured-names'),
-    ) as unknown as PlatformAccessory;
-    (accessory as PlatformAccessory & { context: Record<string, unknown> }).context = {};
-    const createAccessory = () =>
-      new LaundryAccessory(
-        { hap } as unknown as API,
-        { info: vi.fn() } as unknown as Logger,
-        { getContext: vi.fn() } as unknown as HOnApiClient,
-        accessory,
-        {
-          applianceTypeName: 'WM',
-          macAddress: '22-33-44-55-66-77',
-          modelName: 'HW100-B14367U-FR',
-        },
-      );
-    const configuredName = (service: hap.Service | undefined) =>
-      service?.testCharacteristic(hap.Characteristic.ConfiguredName)
-        ? service.getCharacteristic(hap.Characteristic.ConfiguredName).value
-        : undefined;
-
-    createAccessory();
-    const doorLock = accessory.getServiceById(
-      hap.Service.LockMechanism,
-      'door-lock',
+describe('LaundryAccessory service names', () => {
+  const asPlatformAccessory = (accessory: hap.Accessory): PlatformAccessory => {
+    (accessory as unknown as { context: Record<string, unknown> }).context = {};
+    return accessory as unknown as PlatformAccessory;
+  };
+  const buildLaundryAccessory = (accessory: hap.Accessory) =>
+    new LaundryAccessory(
+      { hap } as unknown as API,
+      { info: vi.fn() } as unknown as Logger,
+      { getContext: vi.fn() } as unknown as HOnApiClient,
+      asPlatformAccessory(accessory),
+      {
+        applianceTypeName: 'WM',
+        macAddress: '22-33-44-55-66-77',
+        modelName: 'HW100-B14367U-FR',
+      },
     );
-    const washing = accessory.getServiceById(
+  // Homebridge stores an accessory with Accessory.serialize and restores it
+  // with Accessory.deserialize when it restarts.
+  const restartHomebridge = (accessory: hap.Accessory): hap.Accessory =>
+    hap.Accessory.deserialize(
+      JSON.parse(JSON.stringify(hap.Accessory.serialize(accessory))),
+    );
+  const doorLock = (accessory: hap.Accessory) =>
+    accessory.getServiceById(hap.Service.LockMechanism, 'door-lock')!;
+  const phaseSensor = (accessory: hap.Accessory, phase: string) =>
+    accessory.getServiceById(
       hap.Service.OccupancySensor,
-      'laundry-phase-washing',
-    );
+      `laundry-phase-${phase}`,
+    )!;
+  const configuredName = (service: hap.Service) =>
+    service.testCharacteristic(hap.Characteristic.ConfiguredName)
+      ? service.getCharacteristic(hap.Characteristic.ConfiguredName).value
+      : undefined;
 
-    expect(configuredName(doorLock)).toBe('Verrouillage porte');
-    expect(configuredName(washing)).toBe('Lavage');
+  it('gives the door lock and phase sensors their own names, not the valve', () => {
+    const accessory = new hap.Accessory(
+      'Washer',
+      hap.uuid.generate('test-names-new'),
+    );
+    buildLaundryAccessory(accessory);
+
+    expect(configuredName(doorLock(accessory))).toBe('Verrouillage porte');
+    expect(configuredName(phaseSensor(accessory, 'washing'))).toBe('Lavage');
+    expect(configuredName(phaseSensor(accessory, 'rinsing'))).toBe('Rinçage');
     expect(
       accessory
         .getService(hap.Service.Valve)!
         .testCharacteristic(hap.Characteristic.ConfiguredName),
     ).toBe(false);
+  });
 
-    washing!.setCharacteristic(hap.Characteristic.ConfiguredName, 'Washing');
-    createAccessory();
+  it('names an accessory cached by 2.2.1 and keeps a later rename made in Home', () => {
+    // 2.2.1 created these linked services with Name only.
+    const cached = new hap.Accessory(
+      'Washer',
+      hap.uuid.generate('test-names-cached'),
+    );
+    cached.addService(hap.Service.LockMechanism, 'Verrouillage porte', 'door-lock');
+    cached.addService(
+      hap.Service.OccupancySensor,
+      'Lavage',
+      'laundry-phase-washing',
+    );
 
-    expect(configuredName(washing)).toBe('Washing');
+    const upgraded = restartHomebridge(cached);
+    buildLaundryAccessory(upgraded);
+    expect(configuredName(doorLock(upgraded))).toBe('Verrouillage porte');
+    expect(configuredName(phaseSensor(upgraded, 'washing'))).toBe('Lavage');
+
+    phaseSensor(upgraded, 'washing').setCharacteristic(
+      hap.Characteristic.ConfiguredName,
+      'Washing',
+    );
+    const restarted = restartHomebridge(upgraded);
+    buildLaundryAccessory(restarted);
+
+    expect(configuredName(phaseSensor(restarted, 'washing'))).toBe('Washing');
+    expect(configuredName(doorLock(restarted))).toBe('Verrouillage porte');
   });
 });
