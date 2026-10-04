@@ -1,0 +1,4 @@
+# The maintainer owns every file, so GitHub asks for their review on every pull
+# request. With "Require review from Code Owners" turned on in the branch ruleset
+# of main, that approval is also required to merge.
+* @maximekduval
