@@ -165,28 +165,34 @@ export class LaundryAccessory {
     this.updateCycleTiming(wasActive);
     this.updateCharacteristics();
 
+    // The remaining time drops every minute during a cycle, so it is kept out
+    // of the summary: a new info line is written only when the mode, phase,
+    // program, connection, door or error changes. The countdown alone goes to
+    // the debug log.
     const summary = [
       this.state.machineMode,
       this.state.phase,
       this.state.program ?? '',
-      this.state.remainingSeconds,
       this.state.connected,
       this.state.doorOpen,
       this.effectiveDoorLocked(),
       this.state.error ?? '',
     ].join('|');
+    const message = [
+      '%s: %s, phase %s, remaining %d min, door %s/%s%s',
+      applianceName(this.device),
+      this.state.machineMode,
+      this.state.phase,
+      Math.ceil(this.state.remainingSeconds / 60),
+      this.state.doorOpen ? 'open' : 'closed',
+      this.effectiveDoorLocked() ? 'locked' : 'unlocked',
+      this.state.error ? `, error ${this.state.error}` : '',
+    ] as const;
     if (summary !== this.lastSummary) {
       this.lastSummary = summary;
-      this.log.info(
-        '%s: %s, phase %s, remaining %d min, door %s/%s%s',
-        applianceName(this.device),
-        this.state.machineMode,
-        this.state.phase,
-        Math.ceil(this.state.remainingSeconds / 60),
-        this.state.doorOpen ? 'open' : 'closed',
-        this.effectiveDoorLocked() ? 'locked' : 'unlocked',
-        this.state.error ? `, error ${this.state.error}` : '',
-      );
+      this.log.info(...message);
+    } else {
+      this.log.debug(...message);
     }
   }
 
