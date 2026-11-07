@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Stop writing an info log line every minute while a cycle runs. A line is
+  logged only when the mode, phase, program, connection, door or error
+  changes; the countdown alone goes to the debug log.
+
 ## 2.2.2
 
 - Give the door lock and phase sensors their own `ConfiguredName` so Apple Home

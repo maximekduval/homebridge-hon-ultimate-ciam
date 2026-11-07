@@ -57,7 +57,7 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
     (accessory as PlatformAccessory & { context: Record<string, unknown> }).context = {};
     const laundryAccessory = new LaundryAccessory(
       { hap } as unknown as API,
-      { info: vi.fn() } as unknown as Logger,
+      { debug: vi.fn(), info: vi.fn() } as unknown as Logger,
       { getContext } as unknown as HOnApiClient,
       accessory,
       {
@@ -96,7 +96,7 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
         },
       });
     const client = { getContext } as unknown as HOnApiClient;
-    const log = { info: vi.fn() } as unknown as Logger;
+    const log = { debug: vi.fn(), info: vi.fn() } as unknown as Logger;
     const accessory = new hap.Accessory(
       'Lave-linge',
       hap.uuid.generate('test-washing-machine'),
@@ -225,6 +225,49 @@ describe('LaundryAccessory HomeKit cycle timer', () => {
   });
 });
 
+describe('LaundryAccessory logging', () => {
+  it('logs a cycle at info level only when something other than the countdown changes', async () => {
+    const getContext = vi
+      .fn()
+      .mockResolvedValueOnce(runningContext(150, 1))
+      .mockResolvedValueOnce(runningContext(149, 1))
+      .mockResolvedValueOnce(runningContext(148, 1))
+      .mockResolvedValueOnce(runningContext(60, 4))
+      .mockResolvedValueOnce(runningContext(59, 4))
+      .mockResolvedValueOnce(readyContext(false));
+    const info = vi.fn();
+    const debug = vi.fn();
+    const accessory = new hap.Accessory(
+      'Lave-linge',
+      hap.uuid.generate('test-quiet-countdown'),
+    ) as unknown as PlatformAccessory;
+    (accessory as PlatformAccessory & { context: Record<string, unknown> }).context = {};
+    const laundryAccessory = new LaundryAccessory(
+      { hap } as unknown as API,
+      { debug, info } as unknown as Logger,
+      { getContext } as unknown as HOnApiClient,
+      accessory,
+      {
+        applianceTypeName: 'WM',
+        macAddress: '22-33-44-55-66-77',
+        modelName: 'HW100-B14367U-FR',
+      },
+    );
+
+    for (let i = 0; i < 6; i += 1) {
+      await laundryAccessory.refresh();
+    }
+
+    const infoLines = info.mock.calls.map((call) => call.slice(1, 5));
+    expect(infoLines).toEqual([
+      ['HW100-B14367U-FR', 'running', 'washing', 150],
+      ['HW100-B14367U-FR', 'running', 'rinsing', 60],
+      ['HW100-B14367U-FR', 'ready', 'ready', 0],
+    ]);
+    expect(debug.mock.calls.map((call) => call[4])).toEqual([149, 148, 59]);
+  });
+});
+
 describe('LaundryAccessory service names', () => {
   const asPlatformAccessory = (accessory: hap.Accessory): PlatformAccessory => {
     (accessory as unknown as { context: Record<string, unknown> }).context = {};
@@ -233,7 +276,7 @@ describe('LaundryAccessory service names', () => {
   const buildLaundryAccessory = (accessory: hap.Accessory) =>
     new LaundryAccessory(
       { hap } as unknown as API,
-      { info: vi.fn() } as unknown as Logger,
+      { debug: vi.fn(), info: vi.fn() } as unknown as Logger,
       { getContext: vi.fn() } as unknown as HOnApiClient,
       asPlatformAccessory(accessory),
       {
