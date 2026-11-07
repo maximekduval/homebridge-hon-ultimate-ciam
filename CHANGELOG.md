@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.2.3
 
 - Stop writing an info log line every minute while a cycle runs. A line is
   logged only when the mode, phase, program, connection, door or error
